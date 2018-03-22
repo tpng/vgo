@@ -11,6 +11,7 @@ import (
 
 	"cmd/go/internal/modconv"
 	"cmd/go/internal/modfile"
+	"cmd/go/internal/module"
 	"cmd/go/internal/semver"
 )
 
@@ -57,7 +58,12 @@ func ConvertLegacyConfig(f *modfile.File, file string, data []byte) error {
 			continue
 		}
 		path := repo.ModulePath()
-		need[path] = semver.Max(need[path], info.Version)
+		version := info.Version
+		// Use pseudo-version if package is not imported with semantic import versioning
+		if err := module.Check(path, version); err != nil {
+			version = PseudoVersion("v0", info.Time, info.Short)
+		}
+		need[path] = semver.Max(need[path], version)
 	}
 
 	var paths []string
